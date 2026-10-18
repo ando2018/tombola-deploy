@@ -97,6 +97,16 @@ router.patch('/:id', requireAdmin, async (req, res) => {
       throw conflict('Des ventes existent, l\'événement ne peut pas repasser en brouillon');
     }
     champs.statut = statut;
+    // Reprendre le tirage d'un événement archivé le ressort des archives
+    if (statut !== 'TIRE') Object.assign(champs, { archive: false, archiveLe: undefined });
+  }
+
+  // Archivage : uniquement un événement terminé (tirage effectué)
+  if (typeof req.body?.archive === 'boolean' && req.body.archive !== evt.archive) {
+    if (req.body.archive && (champs.statut ?? evt.statut) !== 'TIRE') {
+      throw conflict('Seul un événement terminé (tirage effectué) peut être archivé');
+    }
+    Object.assign(champs, { archive: req.body.archive, archiveLe: req.body.archive ? new Date() : undefined });
   }
 
   Object.assign(evt, champs);

@@ -1,5 +1,5 @@
 Tombola — dossier prêt à déployer
-Généré le 18/10/2026 18:39:45
+Généré le 18/10/2026 19:19:50
 
 Prérequis sur le serveur : Node.js 22 ou plus, accès à une base MongoDB.
 
@@ -12,6 +12,9 @@ Prérequis sur le serveur : Node.js 22 ou plus, accès à une base MongoDB.
      npm ci --omit=dev
 4. Démarrer :
      npm start
+   ou, avec pm2 (redémarrage automatique) :
+     pm2 start ecosystem.config.cjs
+     pm2 save
    L'application (API + interface) est servie sur le même port : http://serveur:PORT
 
 En production, mettre NODE_ENV=production et placer l'application derrière HTTPS

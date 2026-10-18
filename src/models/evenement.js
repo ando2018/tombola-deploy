@@ -18,6 +18,9 @@ const evenementSchema = new mongoose.Schema({
   /** Liste indicative des lots (page publique). Le tirage se fait à l'urne. */
   lots: { type: [lotSchema], default: [] },
   statut: { type: String, enum: ['BROUILLON', 'OUVERT', 'CLOS', 'TIRE'], default: 'BROUILLON' },
+  /** Événement terminé rangé dans les archives : masqué de la liste principale et de la page publique */
+  archive: { type: Boolean, default: false },
+  archiveLe: { type: Date },
 }, { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } });
 
 evenementSchema.virtual('numeroFin').get(function () {

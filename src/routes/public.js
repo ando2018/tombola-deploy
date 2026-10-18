@@ -35,7 +35,7 @@ const champsPublics = (e) => ({
 
 router.get('/:slug', async (req, res) => {
   const org = await organisationPublique(req.params.slug);
-  const evenements = await Evenement.find({ organisationId: org._id, statut: { $in: STATUTS_PUBLICS } })
+  const evenements = await Evenement.find({ organisationId: org._id, statut: { $in: STATUTS_PUBLICS }, archive: { $ne: true } })
     .sort({ dateTirage: 1, createdAt: -1 }).lean();
   res.json({
     organisation: { nom: org.nom, slug: org.slug },
