@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import { requireAdmin } from '../middleware/auth.js';
+import { Organisation } from '../models/organisation.js';
 import { Participant } from '../models/participant.js';
 import { Vente } from '../models/vente.js';
+import * as exporter from '../services/export-ventes.js';
 import { annulerVente, creerVente, lirePaiement } from '../services/ventes.js';
 import { escapeRegex } from '../utils/codes.js';
 import { notFound, oid } from '../utils/http-error.js';
@@ -49,29 +51,25 @@ router.get('/evenements/:id/ventes', async (req, res) => {
   res.json(await rechercherVentes(req, evt));
 });
 
-const LIBELLES_PAIEMENT = { ESPECES: 'Espèces', CHEQUE: 'Chèque', CARTE: 'Carte', AUTRE: 'Autre' };
+/** Export des ventes (mêmes filtres que la liste) : CSV, Excel ou PDF */
+const FORMATS = {
+  csv: { type: 'text/csv; charset=utf-8', generer: (lignes) => exporter.csv(lignes) },
+  xlsx: { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', generer: exporter.excel },
+  pdf: { type: 'application/pdf', generer: exporter.pdf },
+};
 
-router.get('/evenements/:id/ventes/export.csv', async (req, res) => {
+router.get('/evenements/:id/ventes/export.:format', async (req, res) => {
+  const format = FORMATS[req.params.format];
+  if (!format) throw notFound("Format d'export inconnu");
   const evt = await chargerEvenement(req);
-  const ventes = await rechercherVentes(req, evt);
-  const cellule = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-  const lignes = [
-    ['Date', 'Nom', 'Prénom', 'Téléphone', 'Email', 'Numéros', 'Quantité', 'Montant (€)', 'Paiement', 'Statut', 'Référence', 'Vendeur', 'Annulée'],
-    ...ventes.map((v) => [
-      new Date(v.createdAt).toLocaleString('fr-FR'),
-      v.participant?.nom, v.participant?.prenom, v.participant?.telephone, v.participant?.email,
-      v.numeros.join(' '), v.quantite, (v.montant / 100).toFixed(2).replace('.', ','),
-      v.paiement.type === 'AUTRE' ? v.paiement.libelleAutre : LIBELLES_PAIEMENT[v.paiement.type],
-      v.paiement.statut === 'RECU' ? 'Reçu' : 'En attente',
-      v.paiement.cheque?.numero ? `Chèque n°${v.paiement.cheque.numero} ${v.paiement.cheque.banque ?? ''}`.trim() : v.paiement.reference,
-      v.vendeur?.nom || v.vendeur?.login, v.annulee ? 'Oui' : '',
-    ]),
-  ];
-  const nomFichier = `ventes-${evt.nom.normalize('NFD').replace(/[^\w]+/g, '-').toLowerCase()}.csv`;
-  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-  res.setHeader('Content-Disposition', `attachment; filename="${nomFichier}"`);
-  // BOM + « ; » pour une ouverture directe dans Excel en français
-  res.send('﻿' + lignes.map((l) => l.map(cellule).join(';')).join('\r\n'));
+  const [ventes, org] = await Promise.all([rechercherVentes(req, evt), Organisation.findById(evt.organisationId).lean()]);
+  const contenu = await format.generer(exporter.lignesVentes(ventes), {
+    organisation: org?.nom ?? '', evenement: evt, filtres: exporter.descriptionFiltres(req.query),
+  });
+  const nom = `ventes-${evt.nom.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w]+/g, '-').toLowerCase()}.${req.params.format}`;
+  res.setHeader('Content-Type', format.type);
+  res.setHeader('Content-Disposition', `attachment; filename="${nom}"`);
+  res.send(contenu);
 });
 
 async function chargerVente(req) {
