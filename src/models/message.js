@@ -24,6 +24,8 @@ const messageSchema = new mongoose.Schema({
   statut: { type: String, enum: STATUTS_MESSAGE, default: 'NOUVEAU', index: true },
   reponse: { type: String, trim: true, maxlength: 5000 },
   reponduLe: { type: Date },
+  /** Date à laquelle l'organisation a vu la réponse (vide : réponse non lue, pastille dans l'application) */
+  reponseLueLe: { type: Date },
   emailEnvoye: { type: Boolean, default: false },
 }, { timestamps: true });
 

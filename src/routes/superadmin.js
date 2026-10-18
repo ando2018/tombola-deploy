@@ -219,6 +219,7 @@ router.patch('/messages/:id', async (req, res) => {
   if (reponse !== undefined && String(reponse).trim()) {
     m.reponse = String(reponse).trim();
     m.reponduLe = new Date();
+    m.reponseLueLe = undefined; // nouvelle réponse : non lue par l'organisation
     m.statut = 'TRAITE';
     emailEnvoye = await envoyerMail({
       a: m.auteur.email,

@@ -88,5 +88,18 @@ router.post('/', utilisateurOptionnel, limiteurPublic, async (req, res) => {
 router.get('/mes-messages', requireUser, async (req, res) => {
   res.json(await Message.find({ organisationId: req.auth.organisationId })
     .sort({ createdAt: -1 }).limit(50)
-    .select('type sujet message statut reponse reponduLe createdAt auteur.nom').lean());
+    .select('type sujet message statut reponse reponduLe reponseLueLe createdAt auteur.nom').lean());
+});
+
+/** Réponses du super admin pas encore vues par l'organisation (pastille du menu Contact) */
+const filtreNonLues = (organisationId) => ({ organisationId, reponse: { $nin: [null, ''] }, reponseLueLe: null });
+
+router.get('/reponses-non-lues', requireUser, async (req, res) => {
+  res.json({ nombre: await Message.countDocuments(filtreNonLues(req.auth.organisationId)) });
+});
+
+/** L'organisation a ouvert la page Contact : ses réponses sont lues */
+router.post('/reponses-lues', requireUser, async (req, res) => {
+  const r = await Message.updateMany(filtreNonLues(req.auth.organisationId), { reponseLueLe: new Date() });
+  res.json({ marquees: r.modifiedCount });
 });
