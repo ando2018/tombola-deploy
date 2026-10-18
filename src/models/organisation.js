@@ -12,6 +12,13 @@ const organisationSchema = new mongoose.Schema({
     telephone: { type: String, trim: true },
   },
   actif: { type: Boolean, default: true },
+  /** Logo (icône d'onglet + en-tête), image carrée redimensionnée par l'application. Jamais renvoyé dans les listes. */
+  logo: {
+    type: { type: String, enum: ['image/png', 'image/jpeg', 'image/webp'] },
+    donnees: { type: Buffer, select: false },
+  },
+  /** Date du dernier changement de logo : sert de version dans l'URL (cache du navigateur) */
+  logoMaj: { type: Date },
 }, { timestamps: true });
 
 export const Organisation = mongoose.model('Organisation', organisationSchema);

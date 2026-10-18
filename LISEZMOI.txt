@@ -1,5 +1,5 @@
 Tombola — dossier prêt à déployer
-Généré le 18/10/2026 21:59:08
+Généré le 18/10/2026 22:10:26
 
 Prérequis sur le serveur : Node.js 22 ou plus, accès à une base MongoDB.
 

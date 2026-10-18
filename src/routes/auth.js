@@ -41,7 +41,7 @@ const limiteurLecture = rateLimit({
 // Hash factice pour garder un temps de réponse constant quand le login n'existe pas
 const HASH_FACTICE = bcrypt.hashSync('0000', 10);
 
-const resumeOrganisation = (o) => ({ id: o._id, nom: o.nom, code: o.code, slug: o.slug });
+const resumeOrganisation = (o) => ({ id: o._id, nom: o.nom, code: o.code, slug: o.slug, logoMaj: o.logoMaj ?? null });
 const resumeLicence = (l) => ({ id: l._id, libelle: l.libelle, dateDebut: l.dateDebut, dateFin: l.dateFin });
 
 // ---------- Cookie du jeton d'abonnement ----------

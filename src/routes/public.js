@@ -10,6 +10,22 @@ export const router = Router();
 
 const STATUTS_PUBLICS = ['OUVERT', 'CLOS', 'TIRE'];
 
+/**
+ * Logo d'une organisation, par son identifiant (ORG-XXXXXX) ou son adresse publique.
+ * Disponible même abonnement expiré : il sert d'icône d'onglet sur la page de connexion.
+ * L'URL contient ?v=<date du logo> : le navigateur peut le garder en cache longtemps.
+ */
+router.get('/logo/:cle', async (req, res) => {
+  const cle = String(req.params.cle);
+  const org = await Organisation.findOne({ $or: [{ code: cle.toUpperCase() }, { slug: cle.toLowerCase() }], actif: true })
+    .select('+logo.donnees logo.type').lean();
+  if (!org?.logo?.donnees) throw notFound('Pas de logo');
+  res.setHeader('Content-Type', org.logo.type);
+  res.setHeader('Cache-Control', req.query.v ? 'public, max-age=31536000, immutable' : 'public, max-age=300');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.send(Buffer.from(org.logo.donnees.buffer ?? org.logo.donnees));
+});
+
 async function organisationPublique(slug) {
   const org = await Organisation.findOne({ slug: String(slug).toLowerCase(), actif: true }).lean();
   if (!org || !(await Licence.exists({ organisationId: org._id, ...Licence.filtreActif() }))) {
@@ -38,7 +54,7 @@ router.get('/:slug', async (req, res) => {
   const evenements = await Evenement.find({ organisationId: org._id, statut: { $in: STATUTS_PUBLICS }, archive: { $ne: true } })
     .sort({ dateTirage: 1, createdAt: -1 }).lean();
   res.json({
-    organisation: { nom: org.nom, slug: org.slug },
+    organisation: { nom: org.nom, slug: org.slug, logoMaj: org.logoMaj ?? null },
     evenements: evenements.map(champsPublics),
   });
 });
@@ -65,7 +81,7 @@ router.get('/:slug/evenements/:id', async (req, res) => {
     }));
 
   res.json({
-    organisation: { nom: org.nom, slug: org.slug },
+    organisation: { nom: org.nom, slug: org.slug, logoMaj: org.logoMaj ?? null },
     evenement: champsPublics(evt),
     resultats,
     enSuspens: resultats.find((r) => r.statut === 'EN_SUSPENS') ?? null,
